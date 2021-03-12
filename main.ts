@@ -16,7 +16,7 @@ export default class DEVONlinkPlugin extends Plugin {
 	async onload() {
 		console.log('Loading the DEVONlink plugin.');
 
-		await this.loadSettings();
+		// await this.loadSettings();
 
 		this.addRibbonIcon('go-to-file', 'DEVONlink', () => {
 			this.openDEVONthinkRecord();
@@ -52,20 +52,20 @@ export default class DEVONlinkPlugin extends Plugin {
 			}
 		});
 
-		this.addSettingTab(new DEVONlinkSettingsTab(this.app, this));
+		// this.addSettingTab(new DEVONlinkSettingsTab(this.app, this));
 	}
 
 	onunload() {
 		console.log('Unloading the DEVONlink plugin');
 	}
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
+	// async loadSettings() {
+	// 	this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	// }
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+	// async saveSettings() {
+	// 	await this.saveData(this.settings);
+	// }
 
 	async openDEVONthinkRecord() {
 		let notePath = this.app.workspace.getActiveFile().path;
