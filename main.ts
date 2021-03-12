@@ -1,38 +1,35 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import {runAppleScriptAsync} from 'run-applescript';
 
-interface MyPluginSettings {
-	mySetting: string;
-}
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
+// interface DEVONlinkSettings {
+// 	databaseUUID: string;
+// }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+// const DEFAULT_SETTINGS: DEVONlinkSettings = {
+// 	databaseUUID: 'inbox'
+// }
+
+export default class DEVONlinkPlugin extends Plugin {
+	// settings: DEVONlinkSettings;
 
 	async onload() {
-		console.log('loading plugin');
+		console.log('Loading the DEVONlink plugin.');
 
 		await this.loadSettings();
 
-		this.addRibbonIcon('dice', 'Sample Plugin', () => {
-			new Notice('This is a notice!');
+		this.addRibbonIcon('go-to-file', 'DEVONlink', () => {
+			this.openDEVONthinkRecord();
 		});
 
-		this.addStatusBarItem().setText('Status Bar Text');
-
 		this.addCommand({
-			id: 'open-sample-modal',
-			name: 'Open Sample Modal',
-			// callback: () => {
-			// 	console.log('Simple Callback');
-			// },
+			id: 'open-indexed-note-in-DEVONthink',
+			name: 'Open indexed note in DEVONthink',
 			checkCallback: (checking: boolean) => {
 				let leaf = this.app.workspace.activeLeaf;
 				if (leaf) {
 					if (!checking) {
-						new SampleModal(this.app).open();
+						this.openDEVONthinkRecord();
 					}
 					return true;
 				}
@@ -40,21 +37,26 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		this.registerCodeMirror((cm: CodeMirror.Editor) => {
-			console.log('codemirror', cm);
+		this.addCommand({
+			id: 'reveal-indexed-note-in-DEVONthink',
+			name: 'Reveal indexed note in DEVONthink',
+			checkCallback: (checking: boolean) => {
+				let leaf = this.app.workspace.activeLeaf;
+				if (leaf) {
+					if (!checking) {
+						this.revealDEVONthinkRecord();
+					}
+					return true;
+				}
+				return false;
+			}
 		});
 
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		this.addSettingTab(new DEVONlinkSettingsTab(this.app, this));
 	}
 
 	onunload() {
-		console.log('unloading plugin');
+		console.log('Unloading the DEVONlink plugin');
 	}
 
 	async loadSettings() {
@@ -64,49 +66,87 @@ export default class MyPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
+
+	async openDEVONthinkRecord() {
+		let notePath = this.app.workspace.getActiveFile().path;
+		let noteFilename = this.app.workspace.getActiveFile().name;
+		let vaultPath = this.app.vault.adapter.basePath;
+		let homeFolderPath = await runAppleScriptAsync('get POSIX path of the (path to home folder)');
+		// attempting to get path to work: await runAppleScriptAsync('tell application id "DNtp" to open window for record (first item in (lookup records with path "~' + vaultPath + '/' + notePath + '") in database (get database with uuid "'+ this.settings.databaseUUID + '")) with force'); //need to provide a settings option for DEVONthink database ID
+		let DEVONlinkSuccessNotice = await runAppleScriptAsync(
+			`tell application id "DNtp"
+				try
+					set theDatabases to databases
+					repeat with thisDatabase in theDatabases
+						set theNoteRecord to (first item in (lookup records with file "${noteFilename}" in thisDatabase))
+						set theParentRecord to the first parent of theNoteRecord
+						set newDEVONthinkWindow to open window for record theNoteRecord with force
+						activate
+						return "success"
+					end repeat
+				on error
+					return "failure"
+				end try
+				activate
+			end tell`); //need to provide a settings option for DEVONthink database ID
+		if (DEVONlinkSuccessNotice == "failure") {
+			new Notice("Sorry, DEVONlink couldn't find a matching record in your DEVONthink databases. Make sure your notes are indexed, the index is up to date, and the DEVONthink database with the indexed notes is open.");
+		}
+	}
+
+	async revealDEVONthinkRecord() {
+		let notePath = this.app.workspace.getActiveFile().path;
+		let noteFilename = this.app.workspace.getActiveFile().name;
+		let vaultPath = this.app.vault.adapter.basePath;
+		let homeFolderPath = await runAppleScriptAsync('get POSIX path of the (path to home folder)');
+		// attempting to get path to work: await runAppleScriptAsync('tell application id "DNtp" to open window for record (first item in (lookup records with path "~' + vaultPath + '/' + notePath + '") in database (get database with uuid "'+ this.settings.databaseUUID + '")) with force'); //need to provide a settings option for DEVONthink database ID
+		let DEVONlinkSuccessNotice = await runAppleScriptAsync(
+			`tell application id "DNtp"
+				try
+					set theDatabases to databases
+					repeat with thisDatabase in theDatabases
+						set theNoteRecord to (first item in (lookup records with file "${noteFilename}" in thisDatabase))
+						set theParentRecord to the first parent of theNoteRecord
+						set newDEVONthinkWindow to open window for record theParentRecord with force
+						set newDEVONthinkWindow's selection to theNoteRecord as list
+						activate
+						return "success"
+					end repeat
+				on error
+					return "failure"
+				end try
+				activate
+			end tell`); //need to provide a settings option for DEVONthink database ID
+		if (DEVONlinkSuccessNotice == "failure") {
+			new Notice("Sorry, DEVONlink couldn't find a matching record in your DEVONthink databases. Make sure your notes are indexed, the index is up to date, and the DEVONthink database with the indexed notes is open.");
+		}
+	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+// class DEVONlinkSettingsTab extends PluginSettingTab {
+// 	plugin: DEVONlinkPlugin;
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
+// 	constructor(app: App, plugin: DEVONlinkPlugin) {
+// 		super(app, plugin);
+// 		this.plugin = plugin;
+// 	}
 
-	onClose() {
-		let {contentEl} = this;
-		contentEl.empty();
-	}
-}
+// 	display(): void {
+// 		let {containerEl} = this;
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+// 		containerEl.empty();
 
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
+// 		containerEl.createEl('h2', {text: 'DEVONlink Settings'});
 
-	display(): void {
-		let {containerEl} = this;
-
-		containerEl.empty();
-
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue('')
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
-}
+// 		new Setting(containerEl)
+// 			.setName('DEVONthink Database UUID')
+// 			.setDesc('Please enter the UUID of the database with your indexed notes. To get the UUID, right click on the database and select copy item link, then remove the x-devonthink-item:// prefix.')
+// 			.addText(text => text
+// 				.setPlaceholder('some-string-of-characters')
+// 				.setValue(this.plugin.settings.databaseUUID)
+// 				.onChange(async (value) => {
+// 					this.plugin.settings.databaseUUID = value;
+// 					await this.plugin.saveSettings();
+// 				}));
+// 	}
+// }
