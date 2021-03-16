@@ -1,6 +1,8 @@
-## Obsidian Sample Plugin
+## DEVONlink - Integrate Obsidian with DEVONthink
 
 Open or reveal the current note in DEVONthink.
+
+Pair it with the companion AppleScript to integrate Obsidian and DEVONthink notes. Read more about the plugin and find the AppleScript here: https://axle.design/devonlink-integrate-obsidian-and-devonthink
 
 ### How to use
 
