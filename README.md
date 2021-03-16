@@ -4,6 +4,8 @@ Open or reveal the current note in DEVONthink.
 
 Pair it with the companion AppleScript to integrate Obsidian and DEVONthink notes. Read more about the plugin and find the AppleScript here: https://axle.design/devonlink-integrate-obsidian-and-devonthink
 
+![This video shows the user using the plugin and AppleScript to open notes back and forth from Obsidian and DEVONthink.](https://i.imgur.com/VRurr9L.gif)
+
 ### How to use
 
 1. Make sure your notes are indexed in a DEVONthink database, and that the database is open in DEVONthink.
