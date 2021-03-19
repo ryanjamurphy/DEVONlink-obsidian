@@ -110,11 +110,14 @@ export default class DEVONlinkPlugin extends Plugin {
 							try
 								set theDatabases to databases
 								repeat with thisDatabase in theDatabases
-									set theNoteRecord to (first item in (lookup records with file "${noteFilename}" in thisDatabase))
-									set theParentRecord to the first parent of theNoteRecord
-									set newDEVONthinkWindow to open window for record theNoteRecord with force
-									activate
-									return "success"
+									try
+										set theNoteRecord to (first item in (lookup records with file "${noteFilename}" in thisDatabase))
+										set theParentRecord to the first parent of theNoteRecord
+										set newDEVONthinkWindow to open window for record theParentRecord with force
+										set newDEVONthinkWindow's selection to theNoteRecord as list
+										activate
+										return "success"
+									end try
 								end repeat
 							on error
 								return "failure"
@@ -148,12 +151,14 @@ export default class DEVONlinkPlugin extends Plugin {
 							try
 								set theDatabases to databases
 								repeat with thisDatabase in theDatabases
-									set theNoteRecord to (first item in (lookup records with file "${noteFilename}" in thisDatabase))
-									set theParentRecord to the first parent of theNoteRecord
-									set newDEVONthinkWindow to open window for record theParentRecord with force
-									set newDEVONthinkWindow's selection to theNoteRecord as list
-									activate
-									return "success"
+									try
+										set theNoteRecord to (first item in (lookup records with file "${noteFilename}" in thisDatabase))
+										set theParentRecord to the first parent of theNoteRecord
+										set newDEVONthinkWindow to open window for record theParentRecord with force
+										set newDEVONthinkWindow's selection to theNoteRecord as list
+										activate
+										return "success"
+									end try
 								end repeat
 							on error
 								return "failure"
