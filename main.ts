@@ -40,7 +40,7 @@ export default class DEVONlinkPlugin extends Plugin {
 	ribbonIcon: HTMLElement;
 
 	async onload() {
-		console.log('Loading the DEVONlink plugin.');
+		console.log('Loading the DEVONlink plugin. Testing ribbon icon 1.');
 
 		await this.loadSettings();
 
@@ -68,7 +68,7 @@ export default class DEVONlinkPlugin extends Plugin {
 		console.log('Unloading the DEVONlink plugin');
 	}
 
-	resetRibbonIcon() { //Hat-tip to @liam for this elegant way of managing the plugin's ribbon button. The idea is to give the plugin the ribbon icon as an object to hold onto. Then, since the ribbon icons are a `HTMLElement`, you can `.detach()` them to remove them and re-add them, reassigning the object.
+	async resetRibbonIcon() { //Hat-tip to @liam for this elegant way of managing the plugin's ribbon button. The idea is to give the plugin the ribbon icon as an object to hold onto. Then, since the ribbon icons are a `HTMLElement`, you can `.detach()` them to remove them and re-add them, reassigning the object.
 		this.ribbonIcon.detach();
 		this.ribbonIcon = this.addRibbonIcon(this.settings.DEVONlinkIconColor, 'DEVONlink', () => { 
 				this.doRibbonAction();
@@ -209,13 +209,13 @@ class DEVONlinkSettingsTab extends PluginSettingTab {
 			.setName('Ribbon button colour')
 			.setDesc('Should the ribbon button be DEVONthink blue or inherit the theme colour?')
 			.addDropdown(buttonMenu => buttonMenu
-				.addOption("DEVONthink", "Inherit the theme colour")
-				.addOption("DEVONthink-blue", "DEVONthink blue")
+				.addOption("DEVONthink-logo-neutral", "Inherit the theme colour")
+				.addOption("DEVONthink-logo-blue", "DEVONthink blue")
 				.setValue(this.plugin.settings.DEVONlinkIconColor)
 				.onChange(async (value) => {
 					this.plugin.settings.DEVONlinkIconColor = value;
-					await this.plugin.saveSettings();
 					this.plugin.resetRibbonIcon();
+					await this.plugin.saveSettings();
 				}));
-	}
+		}
 }
