@@ -40,7 +40,7 @@ export default class DEVONlinkPlugin extends Plugin {
 	ribbonIcon: HTMLElement;
 
 	async onload() {
-		console.log('Loading the DEVONlink plugin. Testing ribbon icon 1.');
+		console.log('Loading the DEVONlink plugin.');
 
 		await this.loadSettings();
 
