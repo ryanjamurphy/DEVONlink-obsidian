@@ -107,14 +107,13 @@ export default class DEVONlinkPlugin extends Plugin {
 					// attempting to get path to work: await runAppleScriptAsync('tell application id "DNtp" to open window for record (first item in (lookup records with path "~' + vaultPath + '/' + notePath + '") in database (get database with uuid "'+ this.settings.databaseUUID + '")) with force'); // see above
 					let DEVONlinkSuccessNotice = await runAppleScriptAsync(
 						`tell application id "DNtp"
+							activate
 							try
 								set theDatabases to databases
 								repeat with thisDatabase in theDatabases
 									try
 										set theNoteRecord to (first item in (lookup records with file "${noteFilename}" in thisDatabase))
-										set theParentRecord to the first parent of theNoteRecord
-										set newDEVONthinkWindow to open window for record theParentRecord with force
-										set newDEVONthinkWindow's selection to theNoteRecord as list
+										set newDEVONthinkWindow to open window for record theNoteRecord with force
 										activate
 										return "success"
 									end try
@@ -122,10 +121,10 @@ export default class DEVONlinkPlugin extends Plugin {
 							on error
 								return "failure"
 							end try
-							activate
 						end tell`);
-					if (DEVONlinkSuccessNotice == "failure") {
+					if (DEVONlinkSuccessNotice != "success") {
 						new Notice("Sorry, DEVONlink couldn't find a matching record in your DEVONthink databases. Make sure your notes are indexed, the index is up to date, and the DEVONthink database with the indexed notes is open.");
+						console.log("Debugging DEVONlink. Failed filename: '" + noteFilename +"'.");
 					}
 				}
 				return true;
@@ -148,6 +147,7 @@ export default class DEVONlinkPlugin extends Plugin {
 					// attempting to get path to work: await runAppleScriptAsync('tell application id "DNtp" to open window for record (first item in (lookup records with path "~' + vaultPath + '/' + notePath + '") in database (get database with uuid "'+ this.settings.databaseUUID + '")) with force'); // see above
 					let DEVONlinkSuccessNotice = await runAppleScriptAsync(
 						`tell application id "DNtp"
+							activate
 							try
 								set theDatabases to databases
 								repeat with thisDatabase in theDatabases
@@ -163,10 +163,10 @@ export default class DEVONlinkPlugin extends Plugin {
 							on error
 								return "failure"
 							end try
-							activate
 						end tell`);
-					if (DEVONlinkSuccessNotice == "failure") {
+					if (DEVONlinkSuccessNotice != "success") {
 						new Notice("Sorry, DEVONlink couldn't find a matching record in your DEVONthink databases. Make sure your notes are indexed, the index is up to date, and the DEVONthink database with the indexed notes is open.");
+						console.log("Debugging DEVONlink. Failed filename: '" + noteFilename +"'.");
 					}
 				}
 				return true;
