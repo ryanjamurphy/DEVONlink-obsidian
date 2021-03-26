@@ -1,4 +1,4 @@
-import { addIcon, App, FileSystemAdapter, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { addIcon, App, FileSystemAdapter, Notice, Plugin, PluginSettingTab, Setting, MarkdownView } from 'obsidian';
 import {runAppleScriptAsync} from 'run-applescript';
 
 addIcon('DEVONthink-logo-neutral', `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -28,11 +28,15 @@ addIcon('DEVONthink-logo-blue', `<?xml version="1.0" encoding="UTF-8" standalone
 interface DEVONlinkSettings {
 	ribbonButtonAction: string;
 	DEVONlinkIconColor: string;
+	maximumRelatedItemsSetting: number;
+	relatedItemsPrefixSetting: string;
 }
 
 const DEFAULT_SETTINGS: DEVONlinkSettings = {
 	ribbonButtonAction: 'open',
-	DEVONlinkIconColor: 'DEVONthink-logo-blue'
+	DEVONlinkIconColor: 'DEVONthink-logo-blue',
+	maximumRelatedItemsSetting: 5,
+	relatedItemsPrefixSetting: "- "
 }
 
 export default class DEVONlinkPlugin extends Plugin {
@@ -61,6 +65,12 @@ export default class DEVONlinkPlugin extends Plugin {
 			checkCallback: this.revealInDEVONthink.bind(this)
 		});
 
+		this.addCommand({
+			id: 'insert-related-items-from-DEVONthink-analysis',
+			name: 'Insert related items from DEVONthink concordance',
+			checkCallback: this.insertRelatedFromDEVONthink.bind(this)
+		})
+
 		this.addSettingTab(new DEVONlinkSettingsTab(this.app, this));
 	}
 
@@ -88,11 +98,84 @@ export default class DEVONlinkPlugin extends Plugin {
 			this.openInDEVONthink(false);
 		} else if (this.settings.ribbonButtonAction == "reveal") {
 			this.revealInDEVONthink(false);
+		} else if (this.settings.ribbonButtonAction == "related") {
+			this.insertRelatedFromDEVONthink(false);
 		}
 	};
 
 	getVaultPath(someVaultAdapter: FileSystemAdapter) {
 		return someVaultAdapter.getBasePath();	
+	}
+
+	async insertRelatedFromDEVONthink(checking: boolean) : Promise<boolean> {
+		
+		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		let activeFile = this.app.workspace.getActiveFile();
+
+		if (!checking) {
+			if (activeView) {
+				const editor = activeView.editor;
+				let noteFilename = activeFile.name;
+				let vaultAdapter = this.app.vault.adapter;
+				let maximumRelatedItemsSetting = this.settings.maximumRelatedItemsSetting;
+				let relatedItemsPrefix = this.settings.relatedItemsPrefixSetting;
+				if (vaultAdapter instanceof FileSystemAdapter) {
+					// let vaultPath = vaultAdapter.getBasePath(); // No longer needed, but leaving it in in case I ever decide to return to try to figure out how to get the path right. It would be a more robust solution than relying on filenames.
+					// let homeFolderPath = await runAppleScriptAsync('get POSIX path of the (path to home folder)'); // see above
+					// attempting to get path to work: await runAppleScriptAsync('tell application id "DNtp" to open window for record (first item in (lookup records with path "~' + vaultPath + '/' + notePath + '") in database (get database with uuid "'+ this.settings.databaseUUID + '")) with force'); // see above
+					let DEVONlinkResults = await runAppleScriptAsync(
+						`tell application id "DNtp"
+							if not running then
+								run
+							end if
+							try
+								set theDatabases to databases
+								repeat with thisDatabase in theDatabases
+									try
+										set theNoteRecord to (first item in (lookup records with file "${noteFilename}" in thisDatabase))
+										set seeAlso to compare record theNoteRecord to theNoteRecord's database
+										set listOfRecords to ""
+										set maximumItems to ${maximumRelatedItemsSetting}
+										set itemCount to 0
+										repeat with eachRecord in seeAlso
+											if itemCount is not 0 then
+												if itemCount is greater than (maximumItems + 1) then
+													return listOfRecords
+												else
+													if eachRecord's type is markdown then
+														set listOfRecords to listOfRecords & "${relatedItemsPrefix}" & "[[" & name of eachRecord & "]]" & return
+													else
+														set listOfRecords to listOfRecords & "${relatedItemsPrefix}" & "[[" & filename of eachRecord & "]]" & return
+													end if
+												end if
+											end if
+											set itemCount to itemCount + 1
+										end repeat
+										return listOfRecords
+									on error
+										return "failure"
+									end try
+								end repeat
+							end try
+						end tell`);
+					if (DEVONlinkResults == "failure") {
+						new Notice("Sorry, DEVONlink couldn't find a matching record in your DEVONthink databases. Make sure your notes are indexed, the index is up to date, and the DEVONthink database with the indexed notes is open.");
+						console.log("Debugging DEVONlink. Failed filename: '" + noteFilename +"'.");
+					} else {		
+						console.log(DEVONlinkResults);
+						let cursor = editor.getCursor();
+						// let lineText = editor.getLine(cursor.line);
+						editor.replaceSelection(DEVONlinkResults);
+					}
+				}
+				return true;
+			} else {
+				new Notice("No active pane. Try again with a note open in edit mode.");
+			}
+		}
+		return false;
+
+
 	}
 
 	async openInDEVONthink(checking: boolean) : Promise<boolean> {
@@ -105,7 +188,7 @@ export default class DEVONlinkPlugin extends Plugin {
 					// let vaultPath = vaultAdapter.getBasePath(); // No longer needed, but leaving it in in case I ever decide to return to try to figure out how to get the path right. It would be a more robust solution than relying on filenames.
 					// let homeFolderPath = await runAppleScriptAsync('get POSIX path of the (path to home folder)'); // see above
 					// attempting to get path to work: await runAppleScriptAsync('tell application id "DNtp" to open window for record (first item in (lookup records with path "~' + vaultPath + '/' + notePath + '") in database (get database with uuid "'+ this.settings.databaseUUID + '")) with force'); // see above
-					let DEVONlinkSuccessNotice = await runAppleScriptAsync(
+					let DEVONlinkResults = await runAppleScriptAsync(
 						`tell application id "DNtp"
 							activate
 							try
@@ -122,7 +205,7 @@ export default class DEVONlinkPlugin extends Plugin {
 								return "failure"
 							end try
 						end tell`);
-					if (DEVONlinkSuccessNotice != "success") {
+					if (DEVONlinkResults != "success") {
 						new Notice("Sorry, DEVONlink couldn't find a matching record in your DEVONthink databases. Make sure your notes are indexed, the index is up to date, and the DEVONthink database with the indexed notes is open.");
 						console.log("Debugging DEVONlink. Failed filename: '" + noteFilename +"'.");
 					}
@@ -145,7 +228,7 @@ export default class DEVONlinkPlugin extends Plugin {
 					// let vaultPath = vaultAdapter.getBasePath(); // No longer needed, but leaving it in in case I ever decide to return to try to figure out how to get the path right. It would be a more robust solution than relying on filenames.
 					// let homeFolderPath = await runAppleScriptAsync('get POSIX path of the (path to home folder)'); // see above
 					// attempting to get path to work: await runAppleScriptAsync('tell application id "DNtp" to open window for record (first item in (lookup records with path "~' + vaultPath + '/' + notePath + '") in database (get database with uuid "'+ this.settings.databaseUUID + '")) with force'); // see above
-					let DEVONlinkSuccessNotice = await runAppleScriptAsync(
+					let DEVONlinkResults = await runAppleScriptAsync(
 						`tell application id "DNtp"
 							activate
 							try
@@ -164,7 +247,7 @@ export default class DEVONlinkPlugin extends Plugin {
 								return "failure"
 							end try
 						end tell`);
-					if (DEVONlinkSuccessNotice != "success") {
+					if (DEVONlinkResults != "success") {
 						new Notice("Sorry, DEVONlink couldn't find a matching record in your DEVONthink databases. Make sure your notes are indexed, the index is up to date, and the DEVONthink database with the indexed notes is open.");
 						console.log("Debugging DEVONlink. Failed filename: '" + noteFilename +"'.");
 					}
@@ -199,6 +282,7 @@ class DEVONlinkSettingsTab extends PluginSettingTab {
 			.addDropdown(buttonMenu => buttonMenu
 				.addOption("open", "Open the note in the database")
 				.addOption("reveal", "Reveal the note in the database")
+				.addOption("related", "Insert a list of items related to the active note")
 				.setValue(this.plugin.settings.ribbonButtonAction)
 				.onChange(async (value) => {
 					this.plugin.settings.ribbonButtonAction = value;
@@ -217,5 +301,31 @@ class DEVONlinkSettingsTab extends PluginSettingTab {
 					this.plugin.resetRibbonIcon();
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+			.setName('Maximum items returned with the Related Items command')
+			.setDesc('Set the maximum number of related items DEVONlink will try to return when using the Related Items command.')
+			.addText(textbox => textbox
+				.setValue(this.plugin.settings.maximumRelatedItemsSetting.toString())
+				.onChange(async (value) => {
+					if (Number(value)) {
+						this.plugin.settings.maximumRelatedItemsSetting = Number(value);
+						await this.plugin.saveSettings();
+					} else {
+						new Notice("It looks like you haven't entered a number. Please use integers (e.g.: 1, 2, or 3) only. Resetting the maximum related items to the default value of 5.");
+						this.plugin.settings.maximumRelatedItemsSetting = 5;
+						await this.plugin.saveSettings();
+					}
+				}));
+
+		new Setting(containerEl)
+				.setName('Related items list prefix')
+				.setDesc('The Related Items command returns a list of `[[`-wrapped file names. This setting allows you to configure what the list items look like. E.g., use `- ` for a bulleted list or `!` for embeds.')
+				.addText(textbox => textbox
+					.setValue(this.plugin.settings.relatedItemsPrefixSetting)
+					.onChange(async (value) => {
+						this.plugin.settings.relatedItemsPrefixSetting = value;
+						await this.plugin.saveSettings();
+					}));
 		}
 }

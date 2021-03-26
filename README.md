@@ -1,6 +1,6 @@
 ## DEVONlink - Integrate Obsidian with DEVONthink
 
-Open or reveal the current note in DEVONthink.
+Open or reveal the current note in DEVONthink. Or, insert related files using DEVONthink's AI features.
 
 Pair it with the companion AppleScript to integrate Obsidian and DEVONthink notes. Read more about the plugin and find the AppleScript here: https://axle.design/devonlink-integrate-obsidian-and-devonthink
 
@@ -9,7 +9,7 @@ Pair it with the companion AppleScript to integrate Obsidian and DEVONthink note
 ### How to use
 
 1. Make sure your notes are indexed in a DEVONthink database, and that the database is open in DEVONthink.
-2. Select the ribbon button to reveal the currently-active note in DEVONthink. Or, use the Reveal Indexed Note or Open Indexed Note commands via the Command Palette. Or, assign hotkeys to those commands in Obsidian's hotkey preferences.
+2. Click the ribbon button to invoke one of DEVONlink's commands, configurable in the plugin's settings. Or, use the commands via the Command Palette (type <kbd>cmd</kbd>+<kbd>p</kbd>, then search for "DEVONlink"). Or, assign hotkeys to those commands in Obsidian's hotkey preferences.
 
 ### How it works
 
@@ -23,4 +23,4 @@ Look it up in Obsidian's Community Plugins gallery and select "Install."
 
 ### Manually installing the plugin
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault folder in the directory `VaultFolder/.obsidian/plugins/DEVONlink-obsidian/`.
+- Copy over `main.js` and `manifest.json` to your vault folder in the directory `VaultFolder/.obsidian/plugins/DEVONlink-obsidian/`.
