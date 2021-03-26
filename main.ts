@@ -35,7 +35,7 @@ interface DEVONlinkSettings {
 const DEFAULT_SETTINGS: DEVONlinkSettings = {
 	ribbonButtonAction: 'open',
 	DEVONlinkIconColor: 'DEVONthink-logo-blue',
-	maximumRelatedItemsSetting: 5,
+	maximumRelatedItemsSetting: 10,
 	relatedItemsPrefixSetting: "- "
 }
 
@@ -139,7 +139,7 @@ export default class DEVONlinkPlugin extends Plugin {
 										set itemCount to 0
 										repeat with eachRecord in seeAlso
 											if itemCount is not 0 then
-												if itemCount is greater than (maximumItems + 1) then
+												if itemCount is greater than maximumItems then
 													return listOfRecords
 												else
 													if eachRecord's type is markdown then
