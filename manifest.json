@@ -1,0 +1,10 @@
+{
+	"id": "DEVONlink-obsidian",
+	"name": "DEVONlink",
+	"version": "2.2.0",
+	"minAppVersion": "0.9.12",
+	"description": "Open or reveal the current note in DEVONthink.",
+	"author": "ryanjamurphy",
+	"authorUrl": "https://axle.design",
+	"isDesktopOnly": true
+}
