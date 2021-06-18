@@ -129,52 +129,56 @@ export default class DEVONlinkPlugin extends Plugin {
 					// let homeFolderPath = await runAppleScriptAsync('get POSIX path of the (path to home folder)'); // see above
 					// attempting to get path to work: await runAppleScriptAsync('tell application id "DNtp" to open window for record (first item in (lookup records with path "~' + vaultPath + '/' + notePath + '") in database (get database with uuid "'+ this.settings.databaseUUID + '")) with force'); // see above
 					let currentLinkType = this.settings.linkTypeSetting;
-					var linkLine;
-					if (currentLinkType == "wikiLinks") {
-						linkLine = `"${relatedItemsPrefix}" & "[[" & name of eachRecord & "]]" & return`
-					} else if (currentLinkType == "devonthinkURL") {
-						linkLine = `"${relatedItemsPrefix}" & "[" & name of eachRecord & "](" & reference URL of eachRecord & ")" & return`
-					} else if (currentLinkType == "intelligentLinking") {
-						linkLine = [`"${relatedItemsPrefix}" & "[[" & name of eachRecord & "]]" & return`, `"${relatedItemsPrefix}" & "[" & name of eachRecord & "](" & reference URL of eachRecord & ")" & return`];
-					}
-				let appleScript = `tell application id "DNtp"
-				if not running then
-					run
-				end if
-				try
-					set theDatabases to databases
-					repeat with thisDatabase in theDatabases
-						try
-							set theNoteRecord to (first item in (lookup records with file "${noteFilename}" in thisDatabase))
-							set seeAlso to compare record theNoteRecord to theNoteRecord's database
-							set listOfRecords to ""
-							set maximumItems to ${maximumRelatedItemsSetting}
-							set itemCount to 0
-							repeat with eachRecord in seeAlso
-								if itemCount is not 0 then
-									if itemCount is greater than maximumItems then
-										return listOfRecords
-									else
-										if eachRecord's type is markdown then
-											if eachRecord's path contains "${vaultName}" then
-												set listOfRecords to listOfRecords & ${linkLine[0]}
+					let wikiLinkLine = `"${relatedItemsPrefix}" & "[[" & name of eachRecord & "]]" & return`;
+					let DEVONthinkLinkLine = `"${relatedItemsPrefix}" & "[" & name of eachRecord & "](" & reference URL of eachRecord & ")" & return`;
+					let appleScript = `tell application id "DNtp"
+					if not running then
+						run
+					end if
+					try
+						set theDatabases to databases
+						repeat with thisDatabase in theDatabases
+							set theNoteRecords to (lookup records with file "${noteFilename}" in thisDatabase)
+							if theNoteRecords is not {} then
+								set theNoteRecord to the first item in theNoteRecords
+								try
+									set seeAlso to compare record theNoteRecord to theNoteRecord's database
+									set listOfRecords to ""
+									set maximumItems to ${maximumRelatedItemsSetting}
+									set itemCount to 0
+									repeat with eachRecord in seeAlso
+										if itemCount is not 0 then
+											if itemCount is greater than maximumItems then
+												return listOfRecords
 											else
-												set listOfRecords to listOfRecords & ${linkLine[1]}
+												if ("${currentLinkType}" is equal to "intelligentLinking") then
+													if eachRecord's type is markdown then
+														if eachRecord's path contains "${vaultName}" then
+															set listOfRecords to listOfRecords & ${wikiLinkLine}
+														else
+															set listOfRecords to listOfRecords & ${DEVONthinkLinkLine}
+														end if
+													else
+														set listOfRecords to listOfRecords & ${DEVONthinkLinkLine}
+													end if
+												else if ("${currentLinkType}" is equal to "wikiLinks") then
+													set listOfRecords to listOfRecords & ${wikiLinkLine}
+												else if ("${currentLinkType}" is equal to "devonthinkURL") then
+													set listOfRecords to listOfRecords & ${DEVONthinkLinkLine}
+												end if
 											end if
-										else
-											set listOfRecords to listOfRecords & ${linkLine[1]}
 										end if
-									end if
-								end if
-								set itemCount to itemCount + 1
-							end repeat
-							return listOfRecords
-						on error
-							return "failure"
-						end try
-					end repeat
-				end try
-			end tell`
+										set itemCount to itemCount + 1
+									end repeat
+									return listOfRecords
+								on error
+									return "failure"
+								end try
+							end if
+						end repeat
+						return "failure"
+					end try
+				end tell`
 				let DEVONlinkResults = await runAppleScriptAsync(appleScript);
 					if (DEVONlinkResults == "failure") {
 						new Notice("Sorry, DEVONlink couldn't find a matching record in your DEVONthink databases. Make sure your notes are indexed, the index is up to date, and the DEVONthink database with the indexed notes is open.");

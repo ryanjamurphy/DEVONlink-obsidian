@@ -1,6 +1,6 @@
 {
   "name": "DEVONlink-obsidian",
-  "version": "2.1.1",
+  "version": "2.2.1",
   "description": "Open or reveal the current note in DEVONthink.",
   "main": "main.js",
   "scripts": {
