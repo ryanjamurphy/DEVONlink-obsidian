@@ -1,7 +1,7 @@
 {
 	"id": "DEVONlink-obsidian",
 	"name": "DEVONlink",
-	"version": "2.1.1",
+	"version": "2.2.0",
 	"minAppVersion": "0.9.12",
 	"description": "Open or reveal the current note in DEVONthink.",
 	"author": "ryanjamurphy",

@@ -38,7 +38,7 @@ const DEFAULT_SETTINGS: DEVONlinkSettings = {
 	DEVONlinkIconColor: 'DEVONthink-logo-blue',
 	maximumRelatedItemsSetting: 10,
 	relatedItemsPrefixSetting: "- ",
-	linkTypeSetting: "wikilinks"
+	linkTypeSetting: "Intelligent Linking"
 }
 
 export default class DEVONlinkPlugin extends Plugin {
@@ -121,55 +121,60 @@ export default class DEVONlinkPlugin extends Plugin {
 				let vaultAdapter = this.app.vault.adapter;
 				let maximumRelatedItemsSetting = this.settings.maximumRelatedItemsSetting;
 				let relatedItemsPrefix = this.settings.relatedItemsPrefixSetting;
-
+				let vaultName = this.app.vault.getName();
+				// let fullNotePath = `${this.app.vault.adapter.basePath}/${activeFile.name}`; // Not actually the "full' path, can't catch folders within the Vault
 
 				if (vaultAdapter instanceof FileSystemAdapter) {
 					// let vaultPath = vaultAdapter.getBasePath(); // No longer needed, but leaving it in in case I ever decide to return to try to figure out how to get the path right. It would be a more robust solution than relying on filenames.
 					// let homeFolderPath = await runAppleScriptAsync('get POSIX path of the (path to home folder)'); // see above
 					// attempting to get path to work: await runAppleScriptAsync('tell application id "DNtp" to open window for record (first item in (lookup records with path "~' + vaultPath + '/' + notePath + '") in database (get database with uuid "'+ this.settings.databaseUUID + '")) with force'); // see above
 					let currentLinkType = this.settings.linkTypeSetting;
-
 					var linkLine;
-
-					if (currentLinkType == "wikilinks") {
+					if (currentLinkType == "wikiLinks") {
 						linkLine = `"${relatedItemsPrefix}" & "[[" & name of eachRecord & "]]" & return`
 					} else if (currentLinkType == "devonthinkURL") {
 						linkLine = `"${relatedItemsPrefix}" & "[" & name of eachRecord & "](" & reference URL of eachRecord & ")" & return`
+					} else if (currentLinkType == "intelligentLinking") {
+						linkLine = [`"${relatedItemsPrefix}" & "[[" & name of eachRecord & "]]" & return`, `"${relatedItemsPrefix}" & "[" & name of eachRecord & "](" & reference URL of eachRecord & ")" & return`];
 					}
-					let appleScript = `tell application id "DNtp"
-					if not running then
-						run
-					end if
-					try
-						set theDatabases to databases
-						repeat with thisDatabase in theDatabases
-							try
-								set theNoteRecord to (first item in (lookup records with file "${noteFilename}" in thisDatabase))
-								set seeAlso to compare record theNoteRecord to theNoteRecord's database
-								set listOfRecords to ""
-								set maximumItems to ${maximumRelatedItemsSetting}
-								set itemCount to 0
-								repeat with eachRecord in seeAlso
-									if itemCount is not 0 then
-										if itemCount is greater than maximumItems then
-											return listOfRecords
-										else
-											if eachRecord's type is markdown then
-												set listOfRecords to listOfRecords & ${linkLine}
+				let appleScript = `tell application id "DNtp"
+				if not running then
+					run
+				end if
+				try
+					set theDatabases to databases
+					repeat with thisDatabase in theDatabases
+						try
+							set theNoteRecord to (first item in (lookup records with file "${noteFilename}" in thisDatabase))
+							set seeAlso to compare record theNoteRecord to theNoteRecord's database
+							set listOfRecords to ""
+							set maximumItems to ${maximumRelatedItemsSetting}
+							set itemCount to 0
+							repeat with eachRecord in seeAlso
+								if itemCount is not 0 then
+									if itemCount is greater than maximumItems then
+										return listOfRecords
+									else
+										if eachRecord's type is markdown then
+											if eachRecord's path contains "${vaultName}" then
+												set listOfRecords to listOfRecords & ${linkLine[0]}
 											else
-												set listOfRecords to listOfRecords & ${linkLine}
+												set listOfRecords to listOfRecords & ${linkLine[1]}
 											end if
+										else
+											set listOfRecords to listOfRecords & ${linkLine[1]}
 										end if
 									end if
-									set itemCount to itemCount + 1
-								end repeat
-								return listOfRecords
-							on error
-								return "failure"
-							end try
-						end repeat
-					end try
-				end tell`
+								end if
+								set itemCount to itemCount + 1
+							end repeat
+							return listOfRecords
+						on error
+							return "failure"
+						end try
+					end repeat
+				end try
+			end tell`
 				let DEVONlinkResults = await runAppleScriptAsync(appleScript);
 					if (DEVONlinkResults == "failure") {
 						new Notice("Sorry, DEVONlink couldn't find a matching record in your DEVONthink databases. Make sure your notes are indexed, the index is up to date, and the DEVONthink database with the indexed notes is open.");
@@ -347,6 +352,14 @@ class DEVONlinkSettingsTab extends PluginSettingTab {
 				.addDropdown(buttonMenu => buttonMenu
 					.addOption("wikilinks", "[[Wikilinks]]")
 					.addOption("devonthinkURL", "DEVONthink x-devonthink-item links")
+					/*
+					* "Wikilinks") {
+						linkLine = `"${relatedItemsPrefix}" & "[[" & name of eachRecord & "]]" & return`
+					} else if (currentLinkType == "DEVONthink URL") {
+						linkLine = `"${relatedItemsPrefix}" & "[" & name of eachRecord & "](" & reference URL of eachRecord & ")" & return`
+					} else if (currentLinkType == "Intelligent Linking") {
+					* */
+					.addOption("intelligentLinking", "Automatically switch between Wikilinks and DEVONthink URL")
 					.setValue(this.plugin.settings.linkTypeSetting)
 					.onChange(async (value) => {
 						this.plugin.settings.linkTypeSetting = value;
