@@ -38,7 +38,7 @@ const DEFAULT_SETTINGS: DEVONlinkSettings = {
 	DEVONlinkIconColor: 'DEVONthink-logo-blue',
 	maximumRelatedItemsSetting: 10,
 	relatedItemsPrefixSetting: "- ",
-	linkTypeSetting: "Intelligent Linking"
+	linkTypeSetting: "intelligentLinking"
 }
 
 export default class DEVONlinkPlugin extends Plugin {
